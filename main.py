@@ -73,6 +73,8 @@ def status():
     return status
 
 
+
+
 app = FastAPI()
 
 @app.get('/')
@@ -94,6 +96,12 @@ async def capabilities():
         'max_target_temperature': device.max_target_temperature,
         'min_target_temperature': device.min_target_temperature
         }
+    
+@app.get('/test')
+async def test():
+    await connect()
+    await device.refresh()
+    return device.supported_operation_modes
 
 @app.post('/poweroff')
 async def ac_poweroff():
@@ -144,7 +152,6 @@ class ac_config(BaseModel):
     swing_mode: Optional[int] = None
     eco_mode: Optional[bool] = None
     turbo_mode: Optional[bool] = None
-    
     
 @app.post('/config')
 async def parameter_data(s1: ac_config):
