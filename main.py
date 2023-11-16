@@ -2,50 +2,32 @@ from typing import Union
 from fastapi import FastAPI
 from typing import List, Optional
 from pydantic import BaseModel
-
+import os
 import uvicorn
 import asyncio
 import logging
+from dotenv import load_dotenv, dotenv_values
 
 from msmart.device import AirConditioner as AC
 from msmart.discover import Discover
 
+
+
 logging.basicConfig(level=logging.INFO)
 
-DEVICE_IP = '192.168.0.165'
-DEVICE_PORT = 6444
-DEVICE_ID = '144036023305909'
 
-# For V3 devices
-DEVICE_TOKEN = '669845c6a4ec707c583c5e79efcf51e5599aeaf8cf241eaae74cf4ff60be284960b949bdaf042f440bd5c37bdae514ed96edb9f6eb81efb17685b5a54052a824'  # 'YOUR_DEVICE_TOKEN'
-DEVICE_KEY = 'abc14d289c304abfb3fd38f347e2993fa6bd8157e3234510b35298d93c221c28'  # 'YOUR_DEVICE_KEY'
-
-
-
-
-async def main():
-
-    # There are 2 ways to connect
-
-    # Discover.discover_single can automatically construct a device from IP or hostname
-    #  - V3 devices will be automatically authenticated
-    #  - The Midea cloud will be accessed for V3 devices to fetch the token and key
-    # device = await Discover.discover_single(DEVICE_IP)
-
-    # Manually construct the device
-    #  - See midea-discover to read ID, token and key
-    device = AC(ip=DEVICE_IP, port=6444, device_id=int(DEVICE_ID))
-    if DEVICE_TOKEN and DEVICE_KEY:
-        await device.authenticate(DEVICE_TOKEN, DEVICE_KEY)
-
-    # Get device capabilities
-    await device.get_capabilities()
-
-    # Refresh the state
-    await device.refresh()
+deviceconfig = dotenv_values("kueche.env")
+MODUL = deviceconfig["MODULE"]
+DEVICE_IP = deviceconfig["DEVICE_IP"]
+DEVICE_PORT = deviceconfig["DEVICE_PORT"]
+DEVICE_ID = deviceconfig["DEVICE_ID"]
+DEVICE_TOKEN = deviceconfig["DEVICE_TOKEN"]
+DEVICE_KEY = deviceconfig["DEVICE_KEY"]
 
 
-device = AC(ip=DEVICE_IP, port=6444, device_id=int(DEVICE_ID))
+device = AC(ip=DEVICE_IP, port=DEVICE_PORT, device_id=int(DEVICE_ID))
+
+print (device)
 
 async def connect():
     if DEVICE_TOKEN and DEVICE_KEY:
@@ -61,9 +43,9 @@ def status():
         'power_state': device.power_state,
         'beep': device.beep,
         'target_temperature': device.target_temperature,
-        'operational_mode': device.operational_mode,
-        'fan_speed': device.fan_speed,
-        'swing_mode': device.swing_mode,
+        'operational_mode': repr(device.operational_mode),
+        'fan_speed': repr(device.fan_speed),
+        'swing_mode': repr(device.swing_mode),
         'eco_mode': device.eco_mode,
         'turbo_mode': device.turbo_mode,
         'fahrenheit': device.fahrenheit,
@@ -72,37 +54,55 @@ def status():
         }
     return status
 
-
-
-
-app = FastAPI()
-
-@app.get('/')
-async def ac_status():
-    await connect()
-    await device.refresh()
-    return status()
-
-@app.get('/capabilities')
-async def capabilities():
-    await connect()
-    await device.get_capabilities()
-    return {
-        'supported_modes': device.supported_operation_modes,
-        'supported_swing_modes': device.supported_swing_modes,
-        'supported_fan_speeds': device.supported_fan_speeds,
+def get_capabilities():
+    values = {
+        'supported_modes': repr(device.supported_operation_modes),
+        'supported_swing_modes': repr(device.supported_swing_modes),
+        'supported_fan_speeds': repr(device.supported_fan_speeds),
         'supports_eco_mode': device.supports_eco_mode,
         'supports_turbo_mode': device.supports_turbo_mode,
         'max_target_temperature': device.max_target_temperature,
         'min_target_temperature': device.min_target_temperature
         }
-    
-@app.get('/test')
-async def test():
+    return values
+
+def config_data():
+    values = {
+        'name': deviceconfig["NAME"],
+        'modul': MODUL,
+        'device-ip': DEVICE_IP,
+        'device-port': DEVICE_PORT,
+        'device-id': DEVICE_ID,
+        'device-key': DEVICE_KEY,
+        'device-token': DEVICE_TOKEN
+    }
+    return values
+
+
+app = FastAPI()
+
+
+#Show Status of AC Unit
+@app.get('/status')
+async def ac_status():
     await connect()
     await device.refresh()
-    return device.supported_operation_modes
+    return status()
 
+@app.get('/config')
+async def device_config():
+    return config_data()
+
+
+#Show Capabilites (Mode, Fan Speed, Swing Mode etc) of AC Unit
+@app.get('/capabilities')
+async def capabilities():
+    await connect()
+    await device.get_capabilities()
+    return get_capabilities()
+
+
+# Turn AC Unit Off
 @app.post('/poweroff')
 async def ac_poweroff():
     await connect()
@@ -110,7 +110,8 @@ async def ac_poweroff():
     device.power_state = False
     await device.apply()
     return status()
-    
+
+# Turn AC Unit On
 @app.post('/poweron')
 async def ac_poweron():
     await connect()
@@ -119,6 +120,7 @@ async def ac_poweron():
     await device.apply()
     return status()
 
+# Set Temperature
 @app.post('/temperature/{temperature}')
 async def ac_temperature(temperature: int):
     await connect()
@@ -127,6 +129,7 @@ async def ac_temperature(temperature: int):
     await device.apply()
     return status()
 
+# Set Operation Mode
 @app.post('/operationmode/{operationmode}')
 async def ac_operationmode(operationmode: int):
     await connect()
@@ -135,6 +138,7 @@ async def ac_operationmode(operationmode: int):
     await device.apply()
     return status()
 
+# Set Fan Speed
 @app.post('/fanspeed/{fanspeed}')
 async def ac_fanspeed(fanspeed: int):
     await connect()
@@ -142,8 +146,8 @@ async def ac_fanspeed(fanspeed: int):
     device.fanspeed = fanspeed
     await device.apply()
     return status()    
-    
-    
+
+
 class ac_config(BaseModel):
     power_state: Optional[bool] = None
     target_temperature: Optional[int] = None
@@ -153,7 +157,7 @@ class ac_config(BaseModel):
     eco_mode: Optional[bool] = None
     turbo_mode: Optional[bool] = None
     
-@app.post('/config')
+@app.post('/bulk')
 async def parameter_data(s1: ac_config):
     await connect()
     await device.refresh()
