@@ -2,6 +2,7 @@ from typing import Union
 from fastapi import FastAPI
 from typing import List, Optional
 from pydantic import BaseModel
+from configparser import ConfigParser
 import os
 import uvicorn
 import asyncio
@@ -15,7 +16,8 @@ from msmart.discover import Discover
 
 logging.basicConfig(level=logging.INFO)
 
-
+'''
+# Temp Block for Static AC Device Config
 deviceconfig = dotenv_values("kueche.env")
 MODUL = deviceconfig["MODULE"]
 DEVICE_IP = deviceconfig["DEVICE_IP"]
@@ -23,11 +25,24 @@ DEVICE_PORT = deviceconfig["DEVICE_PORT"]
 DEVICE_ID = deviceconfig["DEVICE_ID"]
 DEVICE_TOKEN = deviceconfig["DEVICE_TOKEN"]
 DEVICE_KEY = deviceconfig["DEVICE_KEY"]
-
-
 device = AC(ip=DEVICE_IP, port=DEVICE_PORT, device_id=int(DEVICE_ID))
+'''
 
-print (device)
+# Load Config from devices.ini
+config_parser = ConfigParser()	
+config_parser.read('devices.ini')
+def get_config(configname):
+    if config_parser.has_section(configname):
+        config = {}
+        config['name'] = configname
+        for key, value in config_parser.items(configname):
+            config[key] = value
+        return config
+    else:
+        return "Provided config not found in config file"
+
+
+
 
 async def connect():
     if DEVICE_TOKEN and DEVICE_KEY:
@@ -82,16 +97,18 @@ def config_data():
 app = FastAPI()
 
 
+@app.get("/{name}/config")
+async def read_config(name):
+    cfg = get_config(name)
+    return cfg
+
+
 #Show Status of AC Unit
 @app.get('/status')
 async def ac_status():
     await connect()
     await device.refresh()
     return status()
-
-@app.get('/config')
-async def device_config():
-    return config_data()
 
 
 #Show Capabilites (Mode, Fan Speed, Swing Mode etc) of AC Unit
