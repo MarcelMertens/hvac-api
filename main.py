@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from typing import List, Optional
 from pydantic import BaseModel
 from configparser import ConfigParser
-import os
 import uvicorn
 import asyncio
 import logging
