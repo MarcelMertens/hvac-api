@@ -6,6 +6,7 @@ from configparser import ConfigParser
 import uvicorn
 import asyncio
 import logging
+import os
 from dotenv import load_dotenv, dotenv_values
 
 from msmart.device import AirConditioner as AC
@@ -15,21 +16,12 @@ from msmart.discover import Discover
 
 logging.basicConfig(level=logging.INFO)
 
-'''
-# Temp Block for Static AC Device Config
-deviceconfig = dotenv_values("kueche.env")
-MODUL = deviceconfig["MODULE"]
-DEVICE_IP = deviceconfig["DEVICE_IP"]
-DEVICE_PORT = deviceconfig["DEVICE_PORT"]
-DEVICE_ID = deviceconfig["DEVICE_ID"]
-DEVICE_TOKEN = deviceconfig["DEVICE_TOKEN"]
-DEVICE_KEY = deviceconfig["DEVICE_KEY"]
-device = AC(ip=DEVICE_IP, port=DEVICE_PORT, device_id=int(DEVICE_ID))
-'''
 
 # Load Config from devices.ini
+print (os.getcwd())
 config_parser = ConfigParser()	
-config_parser.read('devices.ini')
+config_parser.read('app/devices.ini')
+
 def get_config(configname):
     if config_parser.has_section(configname):
         config = {}
