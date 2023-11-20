@@ -7,11 +7,17 @@ name: Docker
 
 on:
   push:
+    branches: none
+    # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: none
+
+  workflow_dispatch:
 
 env:
   # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
+  REGISTRY: docker.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
