@@ -1,3 +1,9 @@
 # HVAC-API
 
-FastAPI Wrapper for https://github.com/mill1000/midea-msmart Phyton Library to Control Midea compatibly AC units
+FastAPI Wrapper for some HVAC home appliances.
+
+Currenty integrated:
+- Midea (based on https://github.com/mill1000/midea-msmart)
+
+Planned:
+- Panasonic
