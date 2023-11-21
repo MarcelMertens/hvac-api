@@ -1,0 +1,8 @@
+[kueche]
+NAME = kueche
+MODUL = midea
+DEVICE_IP = 192.168.255.253
+DEVICE_PORT = 6444
+DEVICE_ID = 12345678
+DEVICE_TOKEN = abcdefghi
+DEVICE_KEY = abcdefghi
