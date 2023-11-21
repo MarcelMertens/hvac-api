@@ -13,7 +13,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 # Build FastAPI app
-app = FastAPI()
+app = FastAPI(debug=True, # show nice stack-trace directly in web, not need to look in docker output
+              title="<replace me with something>")
 
 
 @app.on_event("startup")
